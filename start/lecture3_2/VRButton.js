@@ -4,28 +4,106 @@
  * @author NikLever / http://niklever.com
  */
 
-class VRButton{
+class VRButton {
 
-	constructor( renderer ) {
+    constructor(renderer) {
         this.renderer = renderer;
-        
-        if ( 'xr' in navigator ) {
-            
-		} else {
-            
-		}
+
+        if ('xr' in navigator) {
+            const button = document.createElement('button')
+            button.style.display = 'none'
+            button.style.height = '40px'
+            document.body.appendChild(button)
+
+            navigator.xr.isSessionSupported('immersive-vr').then((supported) => {
+                supported ? this.showEnterVR(button) : this.showWebXRNotFound(button)
+            })
+        } else {
+            const message = document.createElement('a')
+            if (window.isSecureContext === false) {
+                message.href = document.location.href.replace(/^http:/, 'https:')
+                message.innerHTML = 'WEBXR NEEDS HTTPS'
+            } else {
+                message.href = 'https://immersiveweb.dev'
+                message.innerHTML = 'WEBXR NOT AVAILABLE'
+            }
+
+            message.style.left = '0 px'
+            message.style.width = '100%'
+            message.style.textDecoration = 'none'
+
+            this.stylizeElement(message, false)
+            message.style.bottom = '0 px'
+            message.style.opacity = '1'
+
+            document.body.appendChild(message)
+        }
 
     }
 
-	showEnterVR( button ) {
-    
+    showEnterVR(button) {
+        let currentSession = null;
+        const self = this
+
+        this.stylizeElement(button, true, 30, true)
+
+        button.style.display = ''
+        button.style.width = '80px'
+        button.style.right = '20px'
+        button.style.cursor = 'pointer'
+        button.innerHTML = '<i class="fas fa-vr-cardboard"></i>'
+
+        button.onmouseenter = function () {
+            button.style.fontSize = '12px'
+            button.textContent = (currentSession === null) ? 'ENTER VR' : 'EXIT VR'
+            button.style.opacity = '1'
+
+        }
+        button.onmouseleave = function () {
+            button.style.fontSize = '30px'
+            button.innerHTML = '<i class="fas fa-vr-cardboard"></i>'
+            button.style.opacity = '0.5'
+        }
+
+
+        function onSessionStarted(session) {
+            session.addEventListener('end', onSessionStarted)
+
+            self.renderer.xr.setSession(session)
+            self.stylizeElement(button, false, 12, true)
+
+            button.textContent = 'EXIT VR'
+
+            currentSession = session
+        }
+
+        function onSessionEnded() {
+            currentSession.removeEventListener('end', onSessionEnded)
+            self.stylizeElement(button, true, 12, true)
+            button.textContent = 'ENTER VR'
+
+            currentSession = null
+        }
+
+        button.onclick = function () {
+            if (currentSession === null) {
+                const sessionInit = {
+                    optionalFeatures:['local-floor', 'bounded-floor'
+            ]
+            }
+                navigator.xr.requestSession('immersive-vr', sessionInit).then(onSessionStarted)
+            } else {
+                currentSession.end()
+            }
+        }
+
     }
 
-    disableButton( button ) {
+    disableButton(button) {
 
         button.style.cursor = 'auto';
         button.style.opacity = '0.5';
-        
+
         button.onmouseenter = null;
         button.onmouseleave = null;
 
@@ -33,11 +111,21 @@ class VRButton{
 
     }
 
-    showWebXRNotFound( button ) { 
-    
+    showWebXRNotFound(button) {
+        this.stylizeElement(button, false)
+        this.disableButton(button)
+
+        button.style.display = ''
+        button.style.width = '100%'
+        button.style.right = '0px'
+        button.style.bottom = '0px'
+        button.style.border = ''
+        button.style.opacity = '1'
+        button.style.fontSize = '13px'
+        button.textContent = 'VR NOT SUPPORTED'
     }
 
-    stylizeElement( element, green = true, fontSize = 13, ignorePadding = false ) {
+    stylizeElement(element, green = true, fontSize = 13, ignorePadding = false) {
 
         element.style.position = 'absolute';
         element.style.bottom = '20px';
@@ -54,4 +142,4 @@ class VRButton{
     }
 };
 
-export { VRButton };
+export {VRButton};
