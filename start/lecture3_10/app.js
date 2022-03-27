@@ -151,6 +151,12 @@ class App {
                 }
         )
 
+        controller = this.renderer.xr.getController(0)
+        controller.addEventListener('connected', onConnected())
+
+        this.scene.add(controller)
+        this.controller = controller
+
         this.renderer.setAnimationLoop(this.render.bind(this));
     }
 
